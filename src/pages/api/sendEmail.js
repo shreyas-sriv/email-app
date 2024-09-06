@@ -1,6 +1,4 @@
 import { IncomingForm } from 'formidable';
-import fs from 'fs';
-import path from 'path';
 import nodemailer from 'nodemailer';
 
 export const config = {
@@ -13,9 +11,8 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       const form = new IncomingForm({
-        multiples: true,
-        uploadDir: './uploads',
-        keepExtensions: true,
+        multiples: true, // Allow multiple file uploads
+        keepExtensions: true, // Keep file extensions
       });
 
       form.parse(req, async (err, fields, files) => {
@@ -24,20 +21,15 @@ export default async function handler(req, res) {
           return res.status(500).json({ message: 'Form parsing error' });
         }
 
-        // Log fields and files for debugging
-        console.log('Fields:', fields);
-        console.log('Files:', files);
-
         // Handle attachments
         const attachments = [];
         if (files.images) {
           const fileArray = Array.isArray(files.images) ? files.images : [files.images];
-          fileArray.forEach((file, index) => {
+          fileArray.forEach(file => {
             if (file.filepath) {
               attachments.push({
-                filename:`image_${index}.jpg`,
-                path: file.filepath,
-                encoding: 'base64', // Ensure correct encoding
+                filename: file.originalFilename || 'unknown',
+                content: file.filepath, // Use file path to get content
               });
             }
           });
@@ -63,18 +55,6 @@ export default async function handler(req, res) {
 
         // Send email
         await transporter.sendMail(mailOptions);
-
-        // Clean up uploaded files
-        if (files.images) {
-          const fileArray = Array.isArray(files.images) ? files.images : [files.images];
-          fileArray.forEach(file => {
-            fs.unlink(file.filepath, (unlinkErr) => {
-              if (unlinkErr) {
-                console.error('Error removing file:', unlinkErr);
-              }
-            });
-          });
-        }
 
         res.status(200).json({ message: 'Email sent successfully' });
       });
