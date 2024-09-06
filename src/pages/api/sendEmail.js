@@ -43,9 +43,6 @@ export default async function handler(req, res) {
           });
         }
 
-        // Log attachments for debugging
-        console.log('Attachments:', attachments);
-
         // Create transporter
         const transporter = nodemailer.createTransport({
           service: 'gmail',
