@@ -1,10 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
   const [bcID, setBcID] = useState('');
-  // const [message, setMessage] = useState('');
   const [images, setImages] = useState([]);
   const [status, setStatus] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+  const [locationEnabled, setLocationEnabled] = useState(false);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setLatitude(latitude);
+          setLongitude(longitude);
+          setLocationEnabled(true);
+        },
+        (error) => {
+          console.error('Error getting location', error);
+          setLocationEnabled(false);
+        }
+      );
+    } else {
+      console.error('Geolocation is not supported by this browser.');
+      setLocationEnabled(false);
+    }
+  }, []);
+
 
   const handleImageChange = (e) => {
     setImages([...e.target.files]);
@@ -12,10 +35,17 @@ export default function Home() {
 
   const sendEmail = async (e) => {
     e.preventDefault();
+    if (!locationEnabled) {
+      alert('Location services are required.');
+      return;
+    }
+
     setStatus('Sending...');
 
     const formData = new FormData();
     formData.append('bcID', bcID);
+    formData.append('latitude', latitude);
+    formData.append('longitude', longitude);
 
     // Append multiple images
     images.forEach((image) => {
@@ -35,8 +65,8 @@ export default function Home() {
 
   return (
     <div style={styles.container}>
-      <div style = {{display: 'flex', justifyContent: 'center'}}>
-        <img  width = '150px' src = '/agratam.jpeg'></img>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <img width='150px' src='/agratam.jpeg' alt='Logo' />
       </div>
       <form onSubmit={sendEmail} encType="multipart/form-data" style={styles.form}>
         <input
@@ -56,7 +86,7 @@ export default function Home() {
           capture="environment"
           style={styles.fileInput}
         />
-        <button type="submit" style={styles.button}>Send</button>
+        <button type="submit" style={styles.button} disabled={!locationEnabled}>Send</button>
       </form>
       <p style={styles.status}>{status}</p>
     </div>
@@ -72,11 +102,6 @@ const styles = {
     borderRadius: '8px',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
   },
-  header: {
-    textAlign: 'center',
-    marginBottom: '20px',
-    color: '#333',
-  },
   form: {
     display: 'flex',
     flexDirection: 'column',
@@ -90,22 +115,12 @@ const styles = {
     border: '1px solid #ccc',
     fontSize: '16px',
     color: 'black',
-    background: 'white'
-  },
-  textarea: {
-    width: '100%',
-    padding: '12px',
-    margin: '8px 0',
-    boxSizing: 'border-box',
-    borderRadius: '4px',
-    border: '1px solid #ccc',
-    fontSize: '16px',
-    minHeight: '100px',
+    background: 'white',
   },
   fileInput: {
     margin: '16px 0',
     fontSize: '16px',
-    color:'black'
+    color: 'black',
   },
   button: {
     backgroundColor: '#4CAF50',
@@ -114,9 +129,6 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
     fontSize: '16px',
-  },
-  buttonHover: {
-    backgroundColor: '#45a049',
   },
   status: {
     textAlign: 'center',
